@@ -1,6 +1,8 @@
 package com.vivekkrishnan.fitbook.service;
 
 import com.vivekkrishnan.fitbook.dto.AppointmentDTO;
+import com.vivekkrishnan.fitbook.exception.ForbiddenException;
+import com.vivekkrishnan.fitbook.exception.NotFoundException;
 import com.vivekkrishnan.fitbook.exception.SlotConflictException;
 import com.vivekkrishnan.fitbook.repository.AppointmentsRepository;
 import com.vivekkrishnan.fitbook.repository.SlotsRepository;
@@ -35,5 +37,27 @@ public class BookingService {
 
         slotsRepository.markBooked(slotId);
         return appointmentsRepository.insertBooked(slotId, customerId, slot.serviceId());
+    }
+
+    // Owner-only: a customer may only cancel their own appointment, regardless of
+    // role-level route protection (that's enforced separately at the controller).
+    // Note: this does not reopen the slot for rebooking. uq_appt_slot UNIQUE(slot_id)
+    // permanently ties one appointment row to one slot, so a cancelled slot stays
+    // BOOKED/unavailable rather than being reused - documented in the report.
+    @Transactional
+    public AppointmentDTO cancel(Long appointmentId, Long customerId) {
+        AppointmentDTO appointment = appointmentsRepository.findById(appointmentId);
+        if (appointment == null) {
+            throw new NotFoundException("Appointment " + appointmentId + " does not exist");
+        }
+        if (!appointment.customerId().equals(customerId)) {
+            throw new ForbiddenException("Appointment " + appointmentId + " does not belong to this customer");
+        }
+        if ("CANCELLED".equals(appointment.status())) {
+            throw new SlotConflictException("Appointment " + appointmentId + " is already cancelled");
+        }
+
+        appointmentsRepository.markCancelled(appointmentId);
+        return appointmentsRepository.findById(appointmentId);
     }
 }

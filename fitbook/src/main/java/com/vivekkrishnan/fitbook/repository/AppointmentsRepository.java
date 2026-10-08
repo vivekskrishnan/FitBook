@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.util.List;
 
 @Repository
 public class AppointmentsRepository {
@@ -34,10 +35,12 @@ public class AppointmentsRepository {
         return findById(keyHolder.getKey().longValue());
     }
 
+    // Returns null rather than throwing when the id doesn't exist, so callers
+    // (e.g. BookingService.cancel) can turn a miss into a NotFoundException.
     public AppointmentDTO findById(Long appointmentId) {
         String sql = "SELECT appointment_id, slot_id, customer_id, service_id, status, created_at " +
                 "FROM appointments WHERE appointment_id = ?";
-        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> new AppointmentDTO(
+        List<AppointmentDTO> results = jdbcTemplate.query(sql, (rs, rowNum) -> new AppointmentDTO(
                 rs.getLong("appointment_id"),
                 rs.getLong("slot_id"),
                 rs.getLong("customer_id"),
@@ -45,6 +48,11 @@ public class AppointmentsRepository {
                 rs.getString("status"),
                 rs.getTimestamp("created_at").toLocalDateTime()
         ), appointmentId);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    public void markCancelled(Long appointmentId) {
+        jdbcTemplate.update("UPDATE appointments SET status = 'CANCELLED' WHERE appointment_id = ?", appointmentId);
     }
 
     public long countBySlot(Long slotId) {
