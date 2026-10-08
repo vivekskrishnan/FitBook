@@ -99,6 +99,13 @@ public class AppointmentsRepository {
         return results.isEmpty() ? null : results.get(0);
     }
 
+    // DETAIL_QUERY already joins through to `trainers` as `t`, so filtering on
+    // t.trainer_id gives the provider dashboard's "my bookings" view.
+    public List<AppointmentDetail> findDetailedByTrainer(Long trainerId) {
+        String sql = DETAIL_QUERY + "WHERE t.trainer_id = ? ORDER BY a.start_time DESC";
+        return jdbcTemplate.query(sql, this::mapDetailRow, trainerId);
+    }
+
     private AppointmentDetail mapDetailRow(ResultSet rs, int rowNum) throws SQLException {
         return new AppointmentDetail(
                 rs.getLong("appointment_id"),

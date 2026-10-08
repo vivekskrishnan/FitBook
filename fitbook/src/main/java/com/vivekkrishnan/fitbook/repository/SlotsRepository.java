@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -60,6 +61,37 @@ public class SlotsRepository {
 
     public void markBooked(Long slotId) {
         jdbcTemplate.update("UPDATE availability_slots SET status = 'BOOKED' WHERE slot_id = ?", slotId);
+    }
+
+    // Maps a logged-in TRAINER's users.user_id to their trainers row. serviceId is
+    // the trainer's single assigned service (trainers.service_id), used to default
+    // the service on a new slot rather than exposing a service picker in the UI.
+    public record TrainerInfo(Long trainerId, Long serviceId) {}
+
+    public TrainerInfo findTrainerByUserId(Long userId) {
+        String sql = "SELECT trainer_id, service_id FROM trainers WHERE user_id = ?";
+        List<TrainerInfo> results = jdbcTemplate.query(sql, (rs, rowNum) -> new TrainerInfo(
+                rs.getLong("trainer_id"),
+                rs.getLong("service_id")
+        ), userId);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    public List<SlotsDTO.Slot> findByTrainerId(Long trainerId) {
+        String sql = BASE_QUERY + "WHERE a.trainer_id = ? ORDER BY a.start_time";
+        return jdbcTemplate.query(sql, this::mapRow, trainerId);
+    }
+
+    public void insertSlot(Long trainerId, Long serviceId, LocalDateTime startTime, LocalDateTime endTime) {
+        jdbcTemplate.update(
+                "INSERT INTO availability_slots (trainer_id, service_id, start_time, end_time, status) " +
+                        "VALUES (?, ?, ?, ?, 'OPEN')",
+                trainerId, serviceId, startTime, endTime
+        );
+    }
+
+    public void deleteSlot(Long slotId) {
+        jdbcTemplate.update("DELETE FROM availability_slots WHERE slot_id = ?", slotId);
     }
 
     private SlotsDTO.Slot mapRow(ResultSet rs, int rowNum) throws SQLException {

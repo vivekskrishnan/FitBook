@@ -11,7 +11,9 @@ DELETE FROM users;
 INSERT INTO users (user_id, name, email, password_hash, role) VALUES
   (1, 'Kai Smith', 'kai.smith@example.com', '$2a$10$kD0uc8AaI0LZiKYmYSDQWeIqYux8o4WQXQjCAmlT61Hk0SnnTAVce', 'CUSTOMER'),
   (2, 'Lloyd Garmadon', 'lloyd.garmadon@example.com', '$2a$10$MMJAX75YQGg6mNleAMdrTeMkMnPAJafECC1pWSdqLDT/N5BEMtVq2', 'TRAINER'),
-  (3, 'Cole Brookestone', 'cole.brookstone@example.com', '$2a$10$SXpN6Qalojey7DlM4kM75eIIen2odDXDQZGDJB9Uwr4mR7f7OUhCK', 'TRAINER');
+  (3, 'Cole Brookestone', 'cole.brookstone@example.com', '$2a$10$SXpN6Qalojey7DlM4kM75eIIen2odDXDQZGDJB9Uwr4mR7f7OUhCK', 'TRAINER'),
+  (4, 'Nya Smith', 'nya.smith@example.com', '$2a$12$z0k8Vnnuod7f0mEXJXPMFeUZ69oleGBGyOsj2nlvLcVfjnOOfzLPS', 'CUSTOMER')
+  ;
 
 INSERT INTO services (service_id, service_name, description, duration_minutes, price) VALUES
   (1, 'Weight training', 'Weight Room Session', 60, 45.00),
