@@ -35,6 +35,25 @@ public class SlotsRepository {
         return jdbcTemplate.query(sql, this::mapRow);
     }
 
+    // Minimal view used only by BookingService while holding the row lock below.
+    public record SlotLock(Long slotId, Long serviceId, String status) {}
+
+    // Locks the slot row for the rest of the caller's transaction so a concurrent
+    // booking attempt on the same slot blocks here until this transaction commits.
+    public SlotLock lockForUpdate(Long slotId) {
+        String sql = "SELECT slot_id, service_id, status FROM availability_slots WHERE slot_id = ? FOR UPDATE";
+        List<SlotLock> results = jdbcTemplate.query(sql, (rs, rowNum) -> new SlotLock(
+                rs.getLong("slot_id"),
+                rs.getLong("service_id"),
+                rs.getString("status")
+        ), slotId);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
+    public void markBooked(Long slotId) {
+        jdbcTemplate.update("UPDATE availability_slots SET status = 'BOOKED' WHERE slot_id = ?", slotId);
+    }
+
     private SlotsDTO.Slot mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new SlotsDTO.Slot(
                 rs.getLong("slot_id"),
