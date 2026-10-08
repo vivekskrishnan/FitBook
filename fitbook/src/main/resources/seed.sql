@@ -22,9 +22,9 @@ INSERT INTO trainers (trainer_id, user_id, service_id) VALUES
   (2, 3, 2);
 
 INSERT INTO availability_slots (slot_id, trainer_id, service_id, start_time, end_time, status) VALUES
-  (1, 1, 1, '2026-09-25 09:00:00', '2026-09-25 10:00:00', 'OPEN'),
-  (2, 2, 2, '2026-09-25 11:00:00', '2026-09-25 11:45:00', 'OPEN'),
-  (3, 1, 1, '2026-09-26 09:00:00', '2026-09-26 10:00:00', 'BOOKED');
+  (1, 1, 1, '2026-09-25 09:00:00', '2026-12-25 10:00:00', 'OPEN'),
+  (2, 2, 2, '2026-09-25 11:00:00', '2026-10-25 11:45:00', 'OPEN'),
+  (3, 1, 1, '2026-09-26 09:00:00', '2026-11-26 10:00:00', 'BOOKED');
 
 INSERT INTO appointments (appointment_id, slot_id, customer_id, service_id, status) VALUES
   (1, 3, 1, 1, 'BOOKED');

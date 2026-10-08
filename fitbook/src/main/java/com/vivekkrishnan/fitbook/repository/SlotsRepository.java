@@ -35,6 +35,14 @@ public class SlotsRepository {
         return jdbcTemplate.query(sql, this::mapRow);
     }
 
+    // Non-locking lookup for display (the booking form, confirmation). The
+    // authoritative, lock-held read at booking time is lockForUpdate() below.
+    public SlotsDTO.Slot findById(Long slotId) {
+        String sql = BASE_QUERY + "WHERE a.slot_id = ?";
+        List<SlotsDTO.Slot> results = jdbcTemplate.query(sql, this::mapRow, slotId);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
     // Minimal view used only by BookingService while holding the row lock below.
     public record SlotLock(Long slotId, Long serviceId, String status) {}
 
