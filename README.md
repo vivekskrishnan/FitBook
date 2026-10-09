@@ -77,6 +77,9 @@ curl http://localhost:8080/slots
 
 `GET /` returns users, trainers, and services from the database. `GET /slots` returns only `OPEN` availability slots, joined with trainer and service info.
 
-### Code-walkthrough video
+### Customer/Trainer Information
 
-[Video link placeholder — add before submission]
+Email: kai.smith@example.com Password: customer1
+Email: nya.smith@example.com Password: customer2
+Email: lloyd.garmadon@example.com Password: trainer1
+Email: cole.brookstone@example.com Password: trainer2
