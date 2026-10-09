@@ -80,6 +80,9 @@ curl http://localhost:8080/slots
 ### Customer/Trainer Information
 
 Email: kai.smith@example.com Password: customer1
+
 Email: nya.smith@example.com Password: customer2
+
 Email: lloyd.garmadon@example.com Password: trainer1
+
 Email: cole.brookstone@example.com Password: trainer2
