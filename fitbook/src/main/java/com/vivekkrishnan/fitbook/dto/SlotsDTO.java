@@ -18,19 +18,11 @@ public class SlotsDTO {
             String status
     ) {}
 
-    private final List<Slot> allSlots;
-    private final List<Slot> availableSlots;
-
-    public SlotsDTO(List<Slot> allSlots, List<Slot> availableSlots) {
-        this.allSlots = allSlots;
-        this.availableSlots = availableSlots;
-    }
-
-    public List<Slot> getAllSlots() {
-        return allSlots;
-    }
-
-    public List<Slot> getAvailableSlots() {
-        return availableSlots;
-    }
+    public record Page(
+            List<Slot> slots,
+            int page,
+            int pageSize,
+            int totalCount,
+            int totalPages
+    ) {}
 }

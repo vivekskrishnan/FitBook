@@ -6,7 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-<div class="container" style="max-width: 800px; margin-top: 60px;">
+<div class="container" style="max-width: 900px; margin-top: 60px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h3 mb-0">Available Slots</h1>
         <div>
@@ -15,9 +15,40 @@
         </div>
     </div>
 
-    <div th:if="${#lists.isEmpty(slots)}" class="alert alert-info">No open slots right now.</div>
+    <form method="get" th:action="@{/slots}" class="row g-2 mb-4 align-items-end">
+        <div class="col-auto">
+            <label class="form-label mb-0" for="trainerId">Trainer</label>
+            <select class="form-select" id="trainerId" name="trainerId">
+                <option value="">All trainers</option>
+                <option th:each="trainer : ${trainers}"
+                        th:value="${trainer.id}"
+                        th:text="${trainer.name}"
+                        th:selected="${selectedTrainerId != null and selectedTrainerId == trainer.id}"></option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label mb-0" for="serviceId">Service</label>
+            <select class="form-select" id="serviceId" name="serviceId">
+                <option value="">All services</option>
+                <option th:each="service : ${services}"
+                        th:value="${service.id}"
+                        th:text="${service.name}"
+                        th:selected="${selectedServiceId != null and selectedServiceId == service.id}"></option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label mb-0" for="date">Date</label>
+            <input type="date" class="form-control" id="date" name="date" th:value="${selectedDate}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a class="btn btn-outline-secondary" th:href="@{/slots}">Clear</a>
+        </div>
+    </form>
 
-    <table th:unless="${#lists.isEmpty(slots)}" class="table table-striped align-middle">
+    <div th:if="${#lists.isEmpty(slotsPage.slots)}" class="alert alert-info">No open slots match these filters.</div>
+
+    <table th:unless="${#lists.isEmpty(slotsPage.slots)}" class="table table-striped align-middle">
         <thead>
         <tr>
             <th>Trainer</th>
@@ -29,7 +60,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="slot : ${slots}">
+        <tr th:each="slot : ${slotsPage.slots}">
             <td th:text="${slot.trainerName}">Trainer</td>
             <td th:text="${slot.serviceName}">Service</td>
             <td th:text="${#temporals.format(slot.startTime, 'MMM d, yyyy h:mm a')}">Start</td>
@@ -41,6 +72,20 @@
         </tr>
         </tbody>
     </table>
+
+    <div th:unless="${#lists.isEmpty(slotsPage.slots)}" class="d-flex justify-content-between align-items-center">
+        <a class="btn btn-outline-secondary btn-sm"
+           th:classappend="${slotsPage.page == 0} ? 'disabled'"
+           th:href="@{/slots(trainerId=${selectedTrainerId}, serviceId=${selectedServiceId}, date=${selectedDate}, page=${slotsPage.page - 1})}">
+            &laquo; Prev
+        </a>
+        <span class="text-muted small" th:text="'Page ' + ${slotsPage.page + 1} + ' of ' + ${slotsPage.totalPages}">Page</span>
+        <a class="btn btn-outline-secondary btn-sm"
+           th:classappend="${slotsPage.page + 1 >= slotsPage.totalPages} ? 'disabled'"
+           th:href="@{/slots(trainerId=${selectedTrainerId}, serviceId=${selectedServiceId}, date=${selectedDate}, page=${slotsPage.page + 1})}">
+            Next &raquo;
+        </a>
+    </div>
 </div>
 </body>
 </html>

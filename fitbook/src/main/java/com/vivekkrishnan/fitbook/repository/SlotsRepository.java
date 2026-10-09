@@ -6,7 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -26,14 +28,53 @@ public class SlotsRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<SlotsDTO.Slot> findAllSlots() {
-        String sql = BASE_QUERY + "ORDER BY a.start_time";
-        return jdbcTemplate.query(sql, this::mapRow);
+    // trainerId/serviceId/date are optional filters (null = no filter on that column).
+    public List<SlotsDTO.Slot> findAvailableSlots(Long trainerId, Long serviceId, LocalDate date, int limit, int offset) {
+        List<Object> params = new ArrayList<>();
+        String sql = BASE_QUERY + "WHERE a.status = 'OPEN' " + filterClause(trainerId, serviceId, date, params)
+                + "ORDER BY a.start_time LIMIT ? OFFSET ?";
+        params.add(limit);
+        params.add(offset);
+        return jdbcTemplate.query(sql, this::mapRow, params.toArray());
     }
 
-    public List<SlotsDTO.Slot> findAvailableSlots() {
-        String sql = BASE_QUERY + "WHERE a.status = 'OPEN' ORDER BY a.start_time";
-        return jdbcTemplate.query(sql, this::mapRow);
+    // Same filters as findAvailableSlots, no LIMIT/OFFSET - used to compute totalPages.
+    public int countAvailableSlots(Long trainerId, Long serviceId, LocalDate date) {
+        List<Object> params = new ArrayList<>();
+        String sql = "SELECT COUNT(*) FROM availability_slots a WHERE a.status = 'OPEN' "
+                + filterClause(trainerId, serviceId, date, params);
+        return jdbcTemplate.queryForObject(sql, Integer.class, params.toArray());
+    }
+
+    private String filterClause(Long trainerId, Long serviceId, LocalDate date, List<Object> params) {
+        StringBuilder clause = new StringBuilder();
+        if (trainerId != null) {
+            clause.append("AND a.trainer_id = ? ");
+            params.add(trainerId);
+        }
+        if (serviceId != null) {
+            clause.append("AND a.service_id = ? ");
+            params.add(serviceId);
+        }
+        if (date != null) {
+            clause.append("AND DATE(a.start_time) = ? ");
+            params.add(date);
+        }
+        return clause.toString();
+    }
+
+    // Filter dropdown options for the /slots browse page.
+    public record Option(Long id, String name) {}
+
+    public List<Option> findTrainerOptions() {
+        String sql = "SELECT t.trainer_id AS id, u.name AS name FROM trainers t " +
+                "JOIN users u ON t.user_id = u.user_id ORDER BY u.name";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Option(rs.getLong("id"), rs.getString("name")));
+    }
+
+    public List<Option> findServiceOptions() {
+        String sql = "SELECT service_id AS id, service_name AS name FROM services ORDER BY service_name";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new Option(rs.getLong("id"), rs.getString("name")));
     }
 
     // Non-locking lookup for display (the booking form, confirmation). The
