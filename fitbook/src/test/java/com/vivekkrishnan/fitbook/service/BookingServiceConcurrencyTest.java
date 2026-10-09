@@ -13,7 +13,6 @@ import org.springframework.jdbc.support.KeyHolder;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -49,8 +48,8 @@ class BookingServiceConcurrencyTest {
                             + "VALUES (1, 1, ?, ?, 'OPEN')",
                     Statement.RETURN_GENERATED_KEYS
             );
-            ps.setTimestamp(1, Timestamp.valueOf(start));
-            ps.setTimestamp(2, Timestamp.valueOf(start.plusHours(1)));
+            ps.setObject(1, start);
+            ps.setObject(2, start.plusHours(1));
             return ps;
         }, keyHolder);
         slotId = keyHolder.getKey().longValue();

@@ -4,6 +4,7 @@ import com.vivekkrishnan.fitbook.dto.HomeDTO;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -22,7 +23,7 @@ public class HomeRepository {
                 rs.getString("name"),
                 rs.getString("email"),
                 rs.getString("role"),
-                rs.getTimestamp("created_at").toLocalDateTime()
+                rs.getObject("created_at", LocalDateTime.class)
         ));
     }
 
@@ -36,7 +37,7 @@ public class HomeRepository {
                 rs.getLong("user_id"),
                 (Long) rs.getObject("service_id"),
                 rs.getString("service_name"),
-                rs.getTimestamp("created_at").toLocalDateTime()
+                rs.getObject("created_at", LocalDateTime.class)
         ));
     }
 

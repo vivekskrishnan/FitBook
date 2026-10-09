@@ -142,8 +142,8 @@ public class SlotsRepository {
                 rs.getString("trainer_name"),
                 rs.getLong("service_id"),
                 rs.getString("service_name"),
-                rs.getTimestamp("start_time").toLocalDateTime(),
-                rs.getTimestamp("end_time").toLocalDateTime(),
+                rs.getObject("start_time", LocalDateTime.class),
+                rs.getObject("end_time", LocalDateTime.class),
                 rs.getBigDecimal("price"),
                 rs.getString("status")
         );

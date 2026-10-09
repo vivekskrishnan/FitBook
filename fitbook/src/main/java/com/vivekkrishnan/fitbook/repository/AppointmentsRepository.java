@@ -50,7 +50,7 @@ public class AppointmentsRepository {
                 rs.getLong("customer_id"),
                 rs.getLong("service_id"),
                 rs.getString("status"),
-                rs.getTimestamp("created_at").toLocalDateTime()
+                rs.getObject("created_at", LocalDateTime.class)
         ), appointmentId);
         return results.isEmpty() ? null : results.get(0);
     }
@@ -113,8 +113,8 @@ public class AppointmentsRepository {
                 rs.getLong("customer_id"),
                 rs.getString("trainer_name"),
                 rs.getString("service_name"),
-                rs.getTimestamp("start_time").toLocalDateTime(),
-                rs.getTimestamp("end_time").toLocalDateTime(),
+                rs.getObject("start_time", LocalDateTime.class),
+                rs.getObject("end_time", LocalDateTime.class),
                 rs.getBigDecimal("price"),
                 rs.getString("status")
         );
