@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/mock-notifications/**"))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login", "/slots", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/health", "/actuator/metrics", "/actuator/metrics/**").permitAll()
                         .requestMatchers("/mock-notifications/**").permitAll()
                         .requestMatchers("/provider/**").hasRole("TRAINER")
                         .requestMatchers("/book/**", "/my-appointments", "/my-appointments/**").hasRole("CUSTOMER")

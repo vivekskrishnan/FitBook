@@ -28,6 +28,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public String handleForbidden(ForbiddenException e, Model model) {
+        log.warn("Access denied: {}", e.getMessage());
         return errorView(model, HttpStatus.FORBIDDEN, e.getMessage());
     }
 
@@ -52,6 +53,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public String handleAccessDenied(AccessDeniedException e, Model model) {
+        log.warn("Access denied: {}", e.getMessage());
         return errorView(model, HttpStatus.FORBIDDEN, "You don't have permission to do that.");
     }
 

@@ -2,8 +2,12 @@ package com.vivekkrishnan.fitbook.service;
 
 import com.vivekkrishnan.fitbook.dto.AppointmentDTO;
 import com.vivekkrishnan.fitbook.dto.NotificationRequestDTO;
+import com.vivekkrishnan.fitbook.exception.ForbiddenException;
+import com.vivekkrishnan.fitbook.exception.SlotConflictException;
 import com.vivekkrishnan.fitbook.gateway.NotificationGateway;
 import com.vivekkrishnan.fitbook.repository.AppointmentsRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,19 +29,37 @@ public class AppointmentFacade {
     private final BookingService bookingService;
     private final AppointmentsRepository appointmentsRepository;
     private final NotificationGateway notificationGateway;
+    private final MeterRegistry meterRegistry;
+    private final Timer bookingLatency;
 
     public AppointmentFacade(
             BookingService bookingService,
             AppointmentsRepository appointmentsRepository,
-            NotificationGateway notificationGateway
+            NotificationGateway notificationGateway,
+            MeterRegistry meterRegistry
     ) {
         this.bookingService = bookingService;
         this.appointmentsRepository = appointmentsRepository;
         this.notificationGateway = notificationGateway;
+        this.meterRegistry = meterRegistry;
+        this.bookingLatency = Timer.builder("fitbook.booking.latency")
+                .description("Time spent in BookingService.book(), excluding the notification")
+                .register(meterRegistry);
     }
 
     public AppointmentDTO book(Long slotId, Long customerId) {
-        AppointmentDTO appointment = bookingService.book(slotId, customerId);
+        AppointmentDTO appointment;
+        Timer.Sample sample = Timer.start(meterRegistry);
+        try {
+            appointment = bookingService.book(slotId, customerId);
+        } catch (SlotConflictException e) {
+            meterRegistry.counter("fitbook.bookings.failed", "reason", "conflict").increment();
+            log.warn("Booking rejected, slot already taken: slotId={} customerId={}", slotId, customerId);
+            throw e;
+        } finally {
+            sample.stop(bookingLatency);
+        }
+        meterRegistry.counter("fitbook.bookings.success").increment();
         log.info("Booking created: appointmentId={} slotId={} customerId={}",
                 appointment.appointmentId(), slotId, customerId);
         notifyCustomer(appointment, NotificationRequestDTO.TYPE_BOOKING_CONFIRMED, "BOOKED", "confirmed");
@@ -45,7 +67,14 @@ public class AppointmentFacade {
     }
 
     public AppointmentDTO cancel(Long appointmentId, Long customerId) {
-        AppointmentDTO appointment = bookingService.cancel(appointmentId, customerId);
+        AppointmentDTO appointment;
+        try {
+            appointment = bookingService.cancel(appointmentId, customerId);
+        } catch (ForbiddenException e) {
+            log.warn("Access denied, appointment belongs to another customer: appointmentId={} customerId={}",
+                    appointmentId, customerId);
+            throw e;
+        }
         log.info("Appointment cancelled: appointmentId={} customerId={}", appointmentId, customerId);
         notifyCustomer(appointment, NotificationRequestDTO.TYPE_BOOKING_CANCELLED, "CANCELLED", "cancelled");
         return appointment;
@@ -66,9 +95,11 @@ public class AppointmentFacade {
             }
             String message = "Your " + detail.serviceName() + " session with " + detail.trainerName()
                     + " on " + detail.startTime().format(WHEN) + " has been " + verb + ".";
-            notificationGateway.send(new NotificationRequestDTO(
+            boolean sent = notificationGateway.send(new NotificationRequestDTO(
                     keyPrefix + "-" + appointment.appointmentId(), recipient, type, message));
+            meterRegistry.counter(sent ? "fitbook.notifications.sent" : "fitbook.notifications.failed").increment();
         } catch (RuntimeException e) {
+            meterRegistry.counter("fitbook.notifications.failed").increment();
             log.warn("Notification skipped, could not be prepared: appointmentId={}",
                     appointment.appointmentId(), e);
         }
