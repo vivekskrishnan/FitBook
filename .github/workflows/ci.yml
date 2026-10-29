@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # Throwaway MySQL for the @SpringBootTest integration tests; credentials are CI-only.
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: fitbook
+          MYSQL_USER: ci_user
+          MYSQL_PASSWORD: ci_password
+          MYSQL_ROOT_PASSWORD: ci_root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uci_user -pci_password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/fitbook?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ci_user
+      DB_PASSWORD: ci_password
+
+    defaults:
+      run:
+        working-directory: fitbook
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Build and run tests
+        run: ./mvnw -B verify
