@@ -77,6 +77,92 @@ curl http://localhost:8080/slots
 
 `GET /` returns users, trainers, and services from the database. `GET /slots` returns only `OPEN` availability slots, joined with trainer and service info.
 
+## Milestone 3 — Integration, Distribution & Deployment
+
+### What this milestone implements
+
+- **Distribution boundary:** a mock notification service (`POST /mock-notifications`, a second controller in the same app) reached only over HTTP through a `NotificationGateway` client. One coarse-grained `NotificationRequestDTO` (idempotency key, recipient, type, message) is sent per business event.
+- **Resilience:** the gateway uses connect/read timeouts, bounded retries with backoff (not on 4xx), and a fallback that logs and returns `false`, so a slow or down notification service never fails a booking.
+- **Commit-then-notify:** `AppointmentFacade` is not transactional. `BookingService.book()/cancel()` commit first, then the notification is sent. A confirmation is sent on both book and cancel, and only on success.
+- **Idempotency:** retries reuse the same key (`BOOKED-<id>` / `CANCELLED-<id>`); the mock service answers `DUPLICATE` for a repeated key.
+- **Observability:** SLF4J logging (INFO/WARN/ERROR), `GET /health` (checks MySQL with `SELECT 1`; 200 UP / 503 DOWN), and Micrometer metrics at `/actuator/metrics/<name>`:
+  `fitbook.bookings.success`, `fitbook.bookings.failed` (tag `reason=conflict`), `fitbook.booking.latency`, `fitbook.notifications.sent`, `fitbook.notifications.failed`.
+- **Delivery:** multi-stage `Dockerfile`, `docker-compose.yml` (app + MySQL), and a GitHub Actions workflow (`.github/workflows/ci.yml`) that builds and runs all tests on every push.
+- **Tests:** includes `NotificationDownTest` (booking and cancel succeed when the notification service is unreachable), plus gateway retry/timeout, mock idempotency, facade notification and `/health` tests.
+
+### Configuration (environment variables)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DB_URL` | `jdbc:mysql://localhost:3306/fitbook?...` | JDBC URL (compose points it at the `mysql` container) |
+| `DB_USERNAME` / `DB_PASSWORD` | none (required) | MySQL credentials |
+| `NOTIFICATION_BASE_URL` | `http://localhost:8080` | Where the gateway sends notifications |
+| `NOTIFICATION_CONNECT_TIMEOUT_MS` | `1000` | Gateway connect timeout |
+| `NOTIFICATION_READ_TIMEOUT_MS` | `1500` | Gateway read timeout |
+| `NOTIFICATION_MAX_ATTEMPTS` | `3` | Total attempts per notification |
+| `NOTIFICATION_RETRY_BACKOFF_MS` | `200` | Base backoff, doubled each retry |
+| `NOTIFICATION_MOCK_FAIL` | `false` | Demo switch: mock service answers 503 |
+| `NOTIFICATION_MOCK_DELAY_MS` | `0` | Demo switch: mock service delays its reply |
+
+### Run locally
+
+```powershell
+cd fitbook
+$env:DB_USERNAME = "fitbook_user"
+$env:DB_PASSWORD = "your_password_here"
+.\mvnw.cmd spring-boot:run
+```
+
+Then open http://localhost:8080 and log in with one of the seeded accounts below.
+
+### Run with Docker
+
+From the `fitbook/` folder (where `docker-compose.yml` lives):
+
+```powershell
+Copy-Item .env.example .env   # then set DB_USERNAME, DB_PASSWORD, MYSQL_ROOT_PASSWORD
+docker compose up --build
+```
+
+`.env` is gitignored; never commit real credentials. Note that `schema.sql` recreates the tables on every app start, so data resets on restart even with the MySQL volume.
+
+### Health and metrics
+
+```powershell
+curl http://localhost:8080/health
+curl http://localhost:8080/actuator/metrics/fitbook.bookings.success
+curl http://localhost:8080/actuator/metrics/fitbook.notifications.failed
+curl http://localhost:8080/mock-notifications   # what the mock service has received
+```
+
+A counter appears in `/actuator/metrics` only after it has been used once.
+
+### Failure demo (notification service down or slow)
+
+Set a switch, restart the app, then book or cancel as a customer:
+
+```powershell
+$env:NOTIFICATION_MOCK_FAIL = "true"       # service answers 503
+# or
+$env:NOTIFICATION_MOCK_DELAY_MS = "5000"   # service is slower than the read timeout
+.\mvnw.cmd spring-boot:run
+```
+
+The booking still succeeds. The log shows three failed attempts with the same key, then `Notification not delivered after 3 attempts, booking unaffected`, and `fitbook.notifications.failed` increases. Unset the variable (`Remove-Item Env:NOTIFICATION_MOCK_FAIL`) to restore normal behaviour.
+
+### Tests and CI
+
+```powershell
+cd fitbook
+.\mvnw.cmd verify
+```
+
+The tests need MySQL and the `DB_*` variables. CI (`.github/workflows/ci.yml`) starts a throwaway MySQL service container and runs `./mvnw -B verify` on every push.
+
+### Video
+
+Code walkthrough: _link to be added_
+
 ### Customer/Trainer Information
 
 Email: kai.smith@example.com Password: customer1
