@@ -8,7 +8,7 @@ import com.vivekkrishnan.fitbook.exception.SlotConflictException;
 import com.vivekkrishnan.fitbook.repository.AppointmentsRepository;
 import com.vivekkrishnan.fitbook.repository.SlotsRepository;
 import com.vivekkrishnan.fitbook.security.AppUserPrincipal;
-import com.vivekkrishnan.fitbook.service.BookingService;
+import com.vivekkrishnan.fitbook.service.AppointmentFacade;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,16 +22,16 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class BookingController {
 
-    private final BookingService bookingService;
+    private final AppointmentFacade appointmentFacade;
     private final SlotsRepository slotsRepository;
     private final AppointmentsRepository appointmentsRepository;
 
     public BookingController(
-            BookingService bookingService,
+            AppointmentFacade appointmentFacade,
             SlotsRepository slotsRepository,
             AppointmentsRepository appointmentsRepository
     ) {
-        this.bookingService = bookingService;
+        this.appointmentFacade = appointmentFacade;
         this.slotsRepository = slotsRepository;
         this.appointmentsRepository = appointmentsRepository;
     }
@@ -53,7 +53,7 @@ public class BookingController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            AppointmentDTO appointment = bookingService.book(slotId, principal.getUserId());
+            AppointmentDTO appointment = appointmentFacade.book(slotId, principal.getUserId());
             return "redirect:/book/confirmation/" + appointment.appointmentId();
         } catch (SlotConflictException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());

@@ -33,8 +33,13 @@ public class SecurityConfig {
             AuthenticationSuccessHandler roleBasedSuccessHandler
     ) throws Exception {
         http
+                // The mock notification service stands in for an external system called
+                // server-to-server by NotificationGateway: there is no browser session or
+                // CSRF token, so it is exempt from CSRF (and permitted below).
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/mock-notifications/**"))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login", "/slots", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/mock-notifications/**").permitAll()
                         .requestMatchers("/provider/**").hasRole("TRAINER")
                         .requestMatchers("/book/**", "/my-appointments", "/my-appointments/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()

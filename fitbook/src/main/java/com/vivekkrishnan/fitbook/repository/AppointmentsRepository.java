@@ -59,6 +59,13 @@ public class AppointmentsRepository {
         jdbcTemplate.update("UPDATE appointments SET status = 'CANCELLED' WHERE appointment_id = ?", appointmentId);
     }
 
+    // Null if the user doesn't exist. Used to address notifications.
+    public String findCustomerEmail(Long customerId) {
+        List<String> results = jdbcTemplate.query(
+                "SELECT email FROM users WHERE user_id = ?", (rs, rowNum) -> rs.getString("email"), customerId);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
     public long countBySlot(Long slotId) {
         Long count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM appointments WHERE slot_id = ?", Long.class, slotId);

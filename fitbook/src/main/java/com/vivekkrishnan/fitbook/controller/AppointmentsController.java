@@ -5,7 +5,7 @@ import com.vivekkrishnan.fitbook.exception.NotFoundException;
 import com.vivekkrishnan.fitbook.exception.SlotConflictException;
 import com.vivekkrishnan.fitbook.repository.AppointmentsRepository;
 import com.vivekkrishnan.fitbook.security.AppUserPrincipal;
-import com.vivekkrishnan.fitbook.service.BookingService;
+import com.vivekkrishnan.fitbook.service.AppointmentFacade;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,11 +21,11 @@ import java.util.List;
 public class AppointmentsController {
 
     private final AppointmentsRepository appointmentsRepository;
-    private final BookingService bookingService;
+    private final AppointmentFacade appointmentFacade;
 
-    public AppointmentsController(AppointmentsRepository appointmentsRepository, BookingService bookingService) {
+    public AppointmentsController(AppointmentsRepository appointmentsRepository, AppointmentFacade appointmentFacade) {
         this.appointmentsRepository = appointmentsRepository;
-        this.bookingService = bookingService;
+        this.appointmentFacade = appointmentFacade;
     }
 
     @GetMapping("/my-appointments")
@@ -58,7 +58,7 @@ public class AppointmentsController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            bookingService.cancel(appointmentId, principal.getUserId());
+            appointmentFacade.cancel(appointmentId, principal.getUserId());
         } catch (ForbiddenException | NotFoundException | SlotConflictException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
