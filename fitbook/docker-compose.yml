@@ -27,6 +27,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       # The mock notification service is in the same app, so it is reached on the app's own port.
       NOTIFICATION_BASE_URL: http://localhost:8080
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-missing-key}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-3.8-flash}
       NOTIFICATION_MOCK_FAIL: ${NOTIFICATION_MOCK_FAIL:-false}
       NOTIFICATION_MOCK_DELAY_MS: ${NOTIFICATION_MOCK_DELAY_MS:-0}
     ports:
