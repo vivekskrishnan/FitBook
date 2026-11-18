@@ -1,10 +1,7 @@
-DROP TABLE IF EXISTS appointments;
-DROP TABLE IF EXISTS availability_slots;
-DROP TABLE IF EXISTS trainers;
-DROP TABLE IF EXISTS services;
-DROP TABLE IF EXISTS users;
+-- Tables are created only if missing, so data survives app restarts.
+-- To start from a clean database, drop it yourself: DROP DATABASE fitbook; CREATE DATABASE fitbook;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
     name          VARCHAR(100) NOT NULL,
     email         VARCHAR(150) NOT NULL,
@@ -15,7 +12,7 @@ CREATE TABLE users (
     CONSTRAINT ck_users_role  CHECK (role IN ('CUSTOMER','TRAINER','ADMIN'))
 );
 
-CREATE TABLE services (
+CREATE TABLE IF NOT EXISTS services (
     service_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
     service_name     VARCHAR(100) NOT NULL,
     description      VARCHAR(255),
@@ -25,7 +22,7 @@ CREATE TABLE services (
     CONSTRAINT ck_services_price    CHECK (price >= 0)
 );
 
-CREATE TABLE trainers (
+CREATE TABLE IF NOT EXISTS trainers (
     trainer_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id     BIGINT NOT NULL,
     service_id  BIGINT,
@@ -35,7 +32,7 @@ CREATE TABLE trainers (
     CONSTRAINT fk_trainers_service FOREIGN KEY (service_id) REFERENCES services(service_id)
 );
 
-CREATE TABLE availability_slots (
+CREATE TABLE IF NOT EXISTS availability_slots (
     slot_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     trainer_id  BIGINT NOT NULL,
     service_id  BIGINT NOT NULL,
@@ -49,7 +46,7 @@ CREATE TABLE availability_slots (
     CONSTRAINT uq_slots_trainer_start UNIQUE (trainer_id, start_time)
 );
 
-CREATE TABLE appointments (
+CREATE TABLE IF NOT EXISTS appointments (
     appointment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     slot_id        BIGINT NOT NULL,
     customer_id    BIGINT NOT NULL,

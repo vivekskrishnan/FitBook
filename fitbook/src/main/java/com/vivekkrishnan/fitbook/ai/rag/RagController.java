@@ -13,7 +13,7 @@ import java.util.Map;
 
 // JSON endpoint for grounded FAQ Q&A (RAG). Any logged-in user may ask.
 @RestController
-@RequestMapping("/ai")
+@RequestMapping({"/ai", "/api/ai"})
 public class RagController {
 
     private static final Logger log = LoggerFactory.getLogger(RagController.class);

@@ -11,7 +11,9 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD"]
+      # -h 127.0.0.1 forces TCP: during first-time setup MySQL runs a temporary socket-only server, and a socket
+      # ping would report healthy before the real server accepts connections.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -27,6 +29,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       # The mock notification service is in the same app, so it is reached on the app's own port.
       NOTIFICATION_BASE_URL: http://localhost:8080
+      # Signs login tokens for the REST API; at least 32 characters. If empty, a random secret is
+      # generated at startup and logins stop working after a restart.
+      JWT_SECRET: ${JWT_SECRET:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-missing-key}
       GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-3.8-flash}
       NOTIFICATION_MOCK_FAIL: ${NOTIFICATION_MOCK_FAIL:-false}
@@ -39,6 +44,19 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+
+  # Next.js frontend. The browser talks only to this container; its server-side proxy forwards
+  # /api/* to the Spring Boot app and keeps the JWT in an httpOnly cookie.
+  frontend:
+    build: ../frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://app:8080
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "3000:3000"
 
 volumes:
   mysql-data:

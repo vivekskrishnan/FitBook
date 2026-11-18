@@ -12,7 +12,7 @@ import java.util.Map;
 // Manual trigger for the demo (trainer-only, see SecurityConfig): runs the same job the
 // scheduler runs, so you don't have to wait for the timer.
 @RestController
-@RequestMapping("/ai/reminders")
+@RequestMapping({"/ai/reminders", "/api/ai/reminders"})
 public class ReminderController {
 
     private final ReminderAgent agent;

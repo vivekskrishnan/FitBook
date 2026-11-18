@@ -92,19 +92,25 @@ class ReminderAgentTest {
         return jdbc.queryForObject("SELECT appointment_id FROM appointments WHERE slot_id = ?", Long.class, slotId);
     }
 
+    // The database is persistent and also holds seed appointments, so these tests only look at the
+    // reminders for the two appointments they create themselves (found by idempotency key).
+    private List<NotificationRequestDTO> sentFor(List<NotificationRequestDTO> all, Long slotId) {
+        String key = "REMINDER-" + appointmentIdOf(slotId);
+        return all.stream().filter(n -> n.idempotencyKey().equals(key)).toList();
+    }
+
     @Test
     void sendsTheLlmWrittenReminderForAppointmentsInTheWindowOnly() {
         ReminderAgent agent = agentWith(modelAnswering("Hi Kai, see you soon for weight training!"));
 
-        ReminderAgent.RunSummary summary = agent.run(Duration.ofHours(24));
+        agent.run(Duration.ofHours(24));
 
-        assertThat(summary.sent()).isEqualTo(1);
-        assertThat(summary.llmWritten()).isEqualTo(1);
-        assertThat(sent).hasSize(1);
-        assertThat(sent.get(0).idempotencyKey()).isEqualTo("REMINDER-" + appointmentIdOf(soonSlot));
-        assertThat(sent.get(0).type()).isEqualTo(NotificationRequestDTO.TYPE_APPOINTMENT_REMINDER);
-        assertThat(sent.get(0).recipient()).isEqualTo("kai.smith@example.com");
-        assertThat(sent.get(0).message()).isEqualTo("Hi Kai, see you soon for weight training!");
+        List<NotificationRequestDTO> soon = sentFor(sent, soonSlot);
+        assertThat(soon).hasSize(1);
+        assertThat(soon.get(0).type()).isEqualTo(NotificationRequestDTO.TYPE_APPOINTMENT_REMINDER);
+        assertThat(soon.get(0).recipient()).isEqualTo("kai.smith@example.com");
+        assertThat(soon.get(0).message()).isEqualTo("Hi Kai, see you soon for weight training!");
+        assertThat(sentFor(sent, laterSlot)).isEmpty();   // 3 days away: outside a 24h window
     }
 
     @Test
@@ -115,9 +121,11 @@ class ReminderAgentTest {
 
         ReminderAgent.RunSummary summary = agentWith(broken).run(Duration.ofHours(24));
 
-        assertThat(summary.sent()).isEqualTo(1);
-        assertThat(summary.fallbackUsed()).isEqualTo(1);
-        assertThat(sent.get(0).message()).contains("Hi Kai").contains("Weight training").contains("arrive 5 minutes early");
+        assertThat(summary.llmWritten()).isZero();
+        assertThat(summary.fallbackUsed()).isGreaterThanOrEqualTo(1);
+        List<NotificationRequestDTO> soon = sentFor(sent, soonSlot);
+        assertThat(soon).hasSize(1);
+        assertThat(soon.get(0).message()).contains("Hi Kai").contains("Weight training").contains("arrive 5 minutes early");
     }
 
     @Test
@@ -127,17 +135,17 @@ class ReminderAgentTest {
         agent.run(Duration.ofHours(24));
         ReminderAgent.RunSummary second = agent.run(Duration.ofHours(24));
 
-        assertThat(second.alreadyReminded()).isEqualTo(1);
-        assertThat(second.sent()).isZero();
-        assertThat(sent).hasSize(1);
+        assertThat(second.alreadyReminded()).isGreaterThanOrEqualTo(1);
+        assertThat(second.sent()).isZero();                    // nothing new on the second run
+        assertThat(sentFor(sent, soonSlot)).hasSize(1);        // still only one reminder for it
     }
 
     @Test
     void widerWindowIncludesLaterAppointments() {
-        ReminderAgent.RunSummary summary = agentWith(modelAnswering("Reminder text")).run(Duration.ofDays(5));
+        agentWith(modelAnswering("Reminder text")).run(Duration.ofDays(5));
 
-        assertThat(summary.found()).isEqualTo(2);
-        assertThat(summary.sent()).isEqualTo(2);
+        assertThat(sentFor(sent, soonSlot)).hasSize(1);
+        assertThat(sentFor(sent, laterSlot)).hasSize(1);       // now inside the window
     }
 
     @Test
@@ -148,9 +156,10 @@ class ReminderAgentTest {
         ReminderAgent agent = new ReminderAgent(ChatClient.builder(modelAnswering("Reminder text")),
                 appointmentsRepository, flaky, new LlmRetry(1, 1));
 
-        assertThat(agent.run(Duration.ofHours(24)).failed()).isEqualTo(1);
+        assertThat(agent.run(Duration.ofHours(24)).failed()).isGreaterThanOrEqualTo(1);
         up[0] = true;
-        assertThat(agent.run(Duration.ofHours(24)).sent()).isEqualTo(1);
-        assertThat(attempts).hasSize(2);
+        agent.run(Duration.ofHours(24));
+
+        assertThat(sentFor(attempts, soonSlot)).hasSize(2);    // tried again after the failure
     }
 }

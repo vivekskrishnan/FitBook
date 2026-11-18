@@ -16,7 +16,7 @@ import java.util.Map;
 // Agent 1: customer-only (see SecurityConfig). The user id comes from the login session,
 // never from the request body, so the agent can only act as the logged-in customer.
 @RestController
-@RequestMapping("/ai")
+@RequestMapping({"/ai", "/api/ai"})
 public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
