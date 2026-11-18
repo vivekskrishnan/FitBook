@@ -1,4 +1,4 @@
-package com.vivekkrishnan.fitbook.ai;
+package com.vivekkrishnan.fitbook.ai.rag;
 
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SimpleVectorStore;

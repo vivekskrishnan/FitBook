@@ -63,6 +63,13 @@ public class SlotsRepository {
         return clause.toString();
     }
 
+    // Any slot by id (any status); null if it doesn't exist. Used by the AI booking tool to
+    // describe a slot before proposing it.
+    public SlotsDTO.Slot findSlotById(Long slotId) {
+        List<SlotsDTO.Slot> results = jdbcTemplate.query(BASE_QUERY + "WHERE a.slot_id = ?", this::mapRow, slotId);
+        return results.isEmpty() ? null : results.get(0);
+    }
+
     // Filter dropdown options for the /slots browse page.
     public record Option(Long id, String name) {}
 

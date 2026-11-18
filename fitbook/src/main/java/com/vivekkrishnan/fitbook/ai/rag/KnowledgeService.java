@@ -1,5 +1,6 @@
-package com.vivekkrishnan.fitbook.ai;
+package com.vivekkrishnan.fitbook.ai.rag;
 
+import com.vivekkrishnan.fitbook.ai.LlmRetry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;

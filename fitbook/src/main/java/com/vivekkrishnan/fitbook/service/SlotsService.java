@@ -29,6 +29,10 @@ public class SlotsService {
         return new SlotsDTO.Page(slots, safePage, PAGE_SIZE, totalCount, totalPages);
     }
 
+    public SlotsDTO.Slot getSlot(Long slotId) {
+        return slotsRepository.findSlotById(slotId);
+    }
+
     public List<SlotsRepository.Option> getTrainerOptions() {
         return slotsRepository.findTrainerOptions();
     }

@@ -1,4 +1,4 @@
-package com.vivekkrishnan.fitbook.ai;
+package com.vivekkrishnan.fitbook.ai.rag;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;

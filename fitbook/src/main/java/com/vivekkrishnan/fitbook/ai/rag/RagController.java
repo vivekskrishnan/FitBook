@@ -1,4 +1,4 @@
-package com.vivekkrishnan.fitbook.ai;
+package com.vivekkrishnan.fitbook.ai.rag;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,16 +11,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-// JSON endpoints for the AI features. Any logged-in user may ask FAQ questions.
+// JSON endpoint for grounded FAQ Q&A (RAG). Any logged-in user may ask.
 @RestController
 @RequestMapping("/ai")
-public class AiController {
+public class RagController {
 
-    private static final Logger log = LoggerFactory.getLogger(AiController.class);
+    private static final Logger log = LoggerFactory.getLogger(RagController.class);
 
     private final KnowledgeService knowledgeService;
 
-    public AiController(KnowledgeService knowledgeService) {
+    public RagController(KnowledgeService knowledgeService) {
         this.knowledgeService = knowledgeService;
     }
 
