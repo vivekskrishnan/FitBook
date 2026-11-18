@@ -15,4 +15,5 @@ public record NotificationRequestDTO(
 ) {
     public static final String TYPE_BOOKING_CONFIRMED = "BOOKING_CONFIRMED";
     public static final String TYPE_BOOKING_CANCELLED = "BOOKING_CANCELLED";
+    public static final String TYPE_APPOINTMENT_REMINDER = "APPOINTMENT_REMINDER";
 }

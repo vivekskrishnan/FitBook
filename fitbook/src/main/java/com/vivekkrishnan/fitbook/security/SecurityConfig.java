@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/health", "/actuator/metrics", "/actuator/metrics/**").permitAll()
                         .requestMatchers("/mock-notifications/**").permitAll()
                         .requestMatchers("/provider/**").hasRole("TRAINER")
+                        .requestMatchers("/ai/reminders/**").hasRole("TRAINER")
                         .requestMatchers("/ai/chat", "/ai/chat/**").hasRole("CUSTOMER")
                         .requestMatchers("/book/**", "/my-appointments", "/my-appointments/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated()

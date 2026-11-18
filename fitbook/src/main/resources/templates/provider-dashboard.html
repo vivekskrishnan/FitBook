@@ -12,6 +12,28 @@
 
     <div th:if="${error}" class="alert alert-danger" th:text="${error}">Error</div>
 
+    <h2 class="h5 mt-4">Appointment reminders (AI)</h2>
+    <form id="reminder-form" th:action="@{/ai/reminders/run}" method="post" class="d-flex align-items-center gap-2">
+        <button type="submit" class="btn btn-outline-primary btn-sm">Send reminders now</button>
+        <span id="reminder-result" class="small text-muted">Reminds customers whose sessions start within 24 hours.</span>
+    </form>
+    <script>
+        document.getElementById('reminder-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const out = document.getElementById('reminder-result');
+            out.textContent = 'Running...';
+            try {
+                const res = await fetch(e.target.action, {method: 'POST',
+                    headers: {'X-CSRF-TOKEN': e.target.querySelector('input[name=_csrf]').value}});
+                const d = await res.json();
+                out.textContent = res.ok
+                    ? 'Found ' + d.found + ', sent ' + d.sent + ' (AI-written ' + d.llmWritten + ', fallback '
+                        + d.fallbackUsed + '), already reminded ' + d.alreadyReminded + ', failed ' + d.failed + '.'
+                    : (d.error || 'Failed.');
+            } catch (err) { out.textContent = 'Could not reach the server.'; }
+        });
+    </script>
+
     <h2 class="h5 mt-4">My Slots</h2>
     <div th:if="${#lists.isEmpty(slots)}" class="text-muted">No slots yet.</div>
     <table th:unless="${#lists.isEmpty(slots)}" class="table table-striped align-middle">

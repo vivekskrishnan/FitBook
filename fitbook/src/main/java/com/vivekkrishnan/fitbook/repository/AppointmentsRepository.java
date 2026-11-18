@@ -113,6 +113,39 @@ public class AppointmentsRepository {
         return jdbcTemplate.query(sql, this::mapDetailRow, trainerId);
     }
 
+    // One row per BOOKED appointment starting in (from, to], with everything a reminder needs.
+    // Used by the reminder agent (Agent 2).
+    public record ReminderTarget(
+            Long appointmentId,
+            String customerName,
+            String customerEmail,
+            String trainerName,
+            String serviceName,
+            LocalDateTime startTime,
+            BigDecimal price
+    ) {}
+
+    public List<ReminderTarget> findUpcomingBooked(LocalDateTime from, LocalDateTime to) {
+        String sql = "SELECT ap.appointment_id, c.name AS customer_name, c.email AS customer_email, " +
+                "tu.name AS trainer_name, s.service_name, a.start_time, s.price " +
+                "FROM appointments ap " +
+                "JOIN availability_slots a ON ap.slot_id = a.slot_id " +
+                "JOIN trainers t ON a.trainer_id = t.trainer_id " +
+                "JOIN users tu ON t.user_id = tu.user_id " +
+                "JOIN users c ON ap.customer_id = c.user_id " +
+                "JOIN services s ON ap.service_id = s.service_id " +
+                "WHERE ap.status = 'BOOKED' AND a.start_time > ? AND a.start_time <= ? " +
+                "ORDER BY a.start_time";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new ReminderTarget(
+                rs.getLong("appointment_id"),
+                rs.getString("customer_name"),
+                rs.getString("customer_email"),
+                rs.getString("trainer_name"),
+                rs.getString("service_name"),
+                rs.getObject("start_time", LocalDateTime.class),
+                rs.getBigDecimal("price")), from, to);
+    }
+
     private AppointmentDetail mapDetailRow(ResultSet rs, int rowNum) throws SQLException {
         return new AppointmentDetail(
                 rs.getLong("appointment_id"),
