@@ -18,7 +18,6 @@ Design points worth reading the code for:
 - **Resilience:** every LLM call retries with exponential backoff, and the reminder agent falls back to a template message if the LLM is down.
 - **Tests never call Gemini:** the chat model and vector store are mocked (127 automated tests across backend and frontend).
 
-A guided tour of the AI code is in [`AI_CODE_GUIDE.md`](AI_CODE_GUIDE.md).
 
 ## Frontend and API security highlights
 
