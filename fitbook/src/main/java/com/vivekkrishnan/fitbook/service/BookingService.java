@@ -35,15 +35,17 @@ public class BookingService {
             throw new SlotConflictException("Slot " + slotId + " is no longer available");
         }
 
+        if (slot.startTime() != null && !slot.startTime().isAfter(java.time.LocalDateTime.now())) {
+            throw new SlotConflictException("Slot " + slotId + " is in the past");
+        }
+
         slotsRepository.markBooked(slotId);
         return appointmentsRepository.insertBooked(slotId, customerId, slot.serviceId());
     }
 
     // Owner-only: a customer may only cancel their own appointment, regardless of
     // role-level route protection (that's enforced separately at the controller).
-    // Note: this does not reopen the slot for rebooking. uq_appt_slot UNIQUE(slot_id)
-    // permanently ties one appointment row to one slot, so a cancelled slot stays
-    // BOOKED/unavailable rather than being reused - documented in the report.
+    // Cancelling keeps the appointment row as history (status CANCELLED) and reopens the slot.
     @Transactional
     public AppointmentDTO cancel(Long appointmentId, Long customerId) {
         AppointmentDTO appointment = appointmentsRepository.findById(appointmentId);
@@ -57,7 +59,9 @@ public class BookingService {
             throw new SlotConflictException("Appointment " + appointmentId + " is already cancelled");
         }
 
+        slotsRepository.lockForUpdate(appointment.slotId());
         appointmentsRepository.markCancelled(appointmentId);
+        slotsRepository.markOpen(appointment.slotId());
         return appointmentsRepository.findById(appointmentId);
     }
 }

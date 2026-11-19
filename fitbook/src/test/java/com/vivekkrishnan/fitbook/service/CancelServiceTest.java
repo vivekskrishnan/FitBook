@@ -70,6 +70,31 @@ class CancelServiceTest {
     }
 
     @Test
+    void cancelReopensSlotAndKeepsHistoryAndAllowsRebooking() {
+        AppointmentDTO first = bookingService.book(slotId, OWNER_CUSTOMER_ID);
+        bookingService.cancel(first.appointmentId(), OWNER_CUSTOMER_ID);
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT status FROM availability_slots WHERE slot_id = ?", String.class, slotId)).isEqualTo("OPEN");
+
+        AppointmentDTO second = bookingService.book(slotId, OTHER_CUSTOMER_ID);
+
+        assertThat(second.appointmentId()).isNotEqualTo(first.appointmentId());
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM appointments WHERE slot_id = ?", Integer.class, slotId)).isEqualTo(2);
+    }
+
+    @Test
+    void pastSlotCannotBeBooked() {
+        jdbcTemplate.update("UPDATE availability_slots SET start_time = ?, end_time = ? WHERE slot_id = ?",
+                Timestamp.valueOf(LocalDateTime.now().minusDays(2)),
+                Timestamp.valueOf(LocalDateTime.now().minusDays(2).plusHours(1)), slotId);
+
+        assertThatThrownBy(() -> bookingService.book(slotId, OWNER_CUSTOMER_ID))
+                .isInstanceOf(SlotConflictException.class);
+    }
+
+    @Test
     void nonOwnerCancelThrowsForbidden() {
         AppointmentDTO booked = bookingService.book(slotId, OWNER_CUSTOMER_ID);
 

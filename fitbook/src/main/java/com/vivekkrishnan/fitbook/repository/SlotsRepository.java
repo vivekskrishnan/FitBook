@@ -31,7 +31,7 @@ public class SlotsRepository {
     // trainerId/serviceId/date are optional filters (null = no filter on that column).
     public List<SlotsDTO.Slot> findAvailableSlots(Long trainerId, Long serviceId, LocalDate date, int limit, int offset) {
         List<Object> params = new ArrayList<>();
-        String sql = BASE_QUERY + "WHERE a.status = 'OPEN' " + filterClause(trainerId, serviceId, date, params)
+        String sql = BASE_QUERY + "WHERE a.status = 'OPEN' AND a.start_time > NOW() " + filterClause(trainerId, serviceId, date, params)
                 + "ORDER BY a.start_time LIMIT ? OFFSET ?";
         params.add(limit);
         params.add(offset);
@@ -41,7 +41,7 @@ public class SlotsRepository {
     // Same filters as findAvailableSlots, no LIMIT/OFFSET - used to compute totalPages.
     public int countAvailableSlots(Long trainerId, Long serviceId, LocalDate date) {
         List<Object> params = new ArrayList<>();
-        String sql = "SELECT COUNT(*) FROM availability_slots a WHERE a.status = 'OPEN' "
+        String sql = "SELECT COUNT(*) FROM availability_slots a WHERE a.status = 'OPEN' AND a.start_time > NOW() "
                 + filterClause(trainerId, serviceId, date, params);
         return jdbcTemplate.queryForObject(sql, Integer.class, params.toArray());
     }
@@ -93,22 +93,35 @@ public class SlotsRepository {
     }
 
     // Minimal view used only by BookingService while holding the row lock below.
-    public record SlotLock(Long slotId, Long serviceId, String status) {}
+    public record SlotLock(Long slotId, Long serviceId, String status, LocalDateTime startTime) {}
 
     // Locks the slot row for the rest of the caller's transaction so a concurrent
     // booking attempt on the same slot blocks here until this transaction commits.
     public SlotLock lockForUpdate(Long slotId) {
-        String sql = "SELECT slot_id, service_id, status FROM availability_slots WHERE slot_id = ? FOR UPDATE";
+        String sql = "SELECT slot_id, service_id, status, start_time FROM availability_slots WHERE slot_id = ? FOR UPDATE";
         List<SlotLock> results = jdbcTemplate.query(sql, (rs, rowNum) -> new SlotLock(
                 rs.getLong("slot_id"),
                 rs.getLong("service_id"),
-                rs.getString("status")
+                rs.getString("status"),
+                rs.getObject("start_time", LocalDateTime.class)
         ), slotId);
         return results.isEmpty() ? null : results.get(0);
     }
 
     public void markBooked(Long slotId) {
         jdbcTemplate.update("UPDATE availability_slots SET status = 'BOOKED' WHERE slot_id = ?", slotId);
+    }
+
+    public void markOpen(Long slotId) {
+        jdbcTemplate.update("UPDATE availability_slots SET status = 'OPEN' WHERE slot_id = ?", slotId);
+    }
+
+    // True if the trainer already has a slot overlapping [start, end).
+    public boolean existsOverlap(Long trainerId, LocalDateTime start, LocalDateTime end) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM availability_slots WHERE trainer_id = ? AND start_time < ? AND end_time > ?",
+                Integer.class, trainerId, end, start);
+        return n != null && n > 0;
     }
 
     // Maps a logged-in TRAINER's users.user_id to their trainers row. serviceId is

@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS appointments (
     CONSTRAINT fk_appt_slot     FOREIGN KEY (slot_id)     REFERENCES availability_slots(slot_id),
     CONSTRAINT fk_appt_customer FOREIGN KEY (customer_id) REFERENCES users(user_id),
     CONSTRAINT fk_appt_service  FOREIGN KEY (service_id)  REFERENCES services(service_id),
+    -- Only a BOOKED appointment occupies its slot: cancelled rows are kept as history and
+    -- the slot can be booked again. NULL (cancelled) values don't collide in a UNIQUE index.
+    active_slot_id BIGINT GENERATED ALWAYS AS (CASE WHEN status = 'BOOKED' THEN slot_id END) STORED,
     CONSTRAINT ck_appt_status   CHECK (status IN ('BOOKED','CANCELLED')),
-    CONSTRAINT uq_appt_slot     UNIQUE (slot_id)
+    CONSTRAINT uq_appt_active_slot UNIQUE (active_slot_id),
+    INDEX idx_appt_slot (slot_id)
 );

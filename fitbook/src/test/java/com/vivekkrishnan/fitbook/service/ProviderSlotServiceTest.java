@@ -24,6 +24,16 @@ class ProviderSlotServiceTest {
     @Autowired
     private ProviderSlotService providerSlotService;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @org.junit.jupiter.api.BeforeEach
+    @org.junit.jupiter.api.AfterEach
+    void cleanFarFutureSlots() {
+        jdbcTemplate.update("DELETE FROM availability_slots WHERE start_time > NOW() + INTERVAL 1 YEAR + INTERVAL 200 DAY "
+                + "AND slot_id NOT IN (SELECT slot_id FROM appointments)");
+    }
+
     @Test
     void endTimeBeforeStartTimeIsRejected() {
         LocalDateTime start = LocalDateTime.now().plusYears(1);
@@ -38,5 +48,22 @@ class ProviderSlotServiceTest {
 
         assertThatThrownBy(() -> providerSlotService.createSlot(TRAINER_USER_ID, start, start))
                 .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void pastStartTimeIsRejected() {
+        LocalDateTime start = LocalDateTime.now().minusDays(1);
+
+        assertThatThrownBy(() -> providerSlotService.createSlot(TRAINER_USER_ID, start, start.plusHours(1)))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void overlappingSlotIsRejected() {
+        LocalDateTime start = LocalDateTime.now().plusYears(2).withNano(0).withSecond(0);
+        providerSlotService.createSlot(TRAINER_USER_ID, start, start.plusHours(1));
+
+        assertThatThrownBy(() -> providerSlotService.createSlot(TRAINER_USER_ID, start.plusMinutes(30), start.plusMinutes(90)))
+                .isInstanceOf(com.vivekkrishnan.fitbook.exception.SlotConflictException.class);
     }
 }
